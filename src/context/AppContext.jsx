@@ -12,9 +12,7 @@ import {
 
 const AppContext = createContext(null)
 
-// Produces a fake-but-plausible JWT-looking string so the login flow can
-// genuinely be described as "JWT-based" in spirit, without a real server
-// to sign one. Nothing in the app trusts this for security.
+
 function makeMockToken(userId) {
   const payload = btoa(JSON.stringify({ sub: userId, iat: Date.now() }))
   return `mock.${payload}.token`
@@ -22,7 +20,7 @@ function makeMockToken(userId) {
 
 export function AppProvider({ children }) {
   const [users, setUsers] = useLocalStorage(STORAGE_KEYS.users, seedUsers)
-  const [courses] = useLocalStorage(STORAGE_KEYS.courses, seedCourses)
+  const [courses, setCourses] = useLocalStorage(STORAGE_KEYS.courses, seedCourses)
   const [enrollments, setEnrollments] = useLocalStorage(
     STORAGE_KEYS.enrollments,
     seedEnrollments,
@@ -75,6 +73,18 @@ export function AppProvider({ children }) {
   // --- Courses ----------------------------------------------------------
   function coursesForProfessor(professorId) {
     return courses.filter((c) => c.professorId === professorId)
+  }
+
+  function createCourse({ code, title, semester }) {
+    if (!currentUser || currentUser.role !== 'professor') return
+    const newCourse = {
+      id: `course-${Date.now()}`,
+      code,
+      title,
+      semester,
+      professorId: currentUser.id,
+    }
+    setCourses((prev) => [...prev, newCourse])
   }
 
   function coursesForStudent(studentId) {
@@ -210,6 +220,7 @@ export function AppProvider({ children }) {
     register,
     logout,
     coursesForProfessor,
+    createCourse,
     coursesForStudent,
     groupForStudentInCourse,
     groupsInCourse,
